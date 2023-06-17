@@ -177,7 +177,7 @@ func (s *ServerSettings) newKAS(conn *websocket.Conn, rawURL string) {
 	// Create a new app in the namespace and return route
 	sendWSMessage(conn, "status", "Deploying a new KAS instance")
 
-	if strings.Contains(dumpURL, "hypershift") {
+	if strings.Contains(dumpURL, "hypershift-dump.tar") {
 		var managementCluster, hostedCluster string
 		if managementCluster, hostedCluster, err = s.launchHypershiftKASApp(appLabel, dumpURL); err != nil {
 			sendWSMessage(conn, "failure", fmt.Sprintf("Failed to run a new app: %s", err.Error()))

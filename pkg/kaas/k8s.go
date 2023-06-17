@@ -218,8 +218,6 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 							Args: []string{
 								"--base-dir",
 								"/must-gather/",
-								"--kubeconfig",
-								"/must-gather/kubeconfig",
 							},
 							ReadinessProbe: &corev1.Probe{
 								TimeoutSeconds:   1,
@@ -314,12 +312,12 @@ func (s *ServerSettings) launchHypershiftKASApp(appLabel string, tarBall string)
 				{
 					Port:     8080,
 					Protocol: corev1.ProtocolTCP,
-					Name:     "management-cluster",
+					Name:     "mgmt-api",
 				},
 				{
 					Port:     8081,
 					Protocol: corev1.ProtocolTCP,
-					Name:     "hosted-cluster",
+					Name:     "hosted-api",
 				},
 			},
 			Selector: map[string]string{
@@ -332,12 +330,12 @@ func (s *ServerSettings) launchHypershiftKASApp(appLabel string, tarBall string)
 		return "", "", fmt.Errorf("failed to create new service: %s", err.Error())
 	}
 
-	managementClusterRoute, err := s.createRoute(ctx, appLabel, "management-cluster", 8080)
+	managementClusterRoute, err := s.createRoute(ctx, appLabel, "mgmt-api", 8080)
 	if err != nil {
 		return "", "", fmt.Errorf("could not create management route")
 	}
 
-	hostedClusterRoute, err := s.createRoute(ctx, appLabel, "hosted-cluster", 8081)
+	hostedClusterRoute, err := s.createRoute(ctx, appLabel, "hosted-api", 8081)
 	if err != nil {
 		return "", "", fmt.Errorf("could not create hosted cluster route")
 	}
@@ -402,12 +400,12 @@ func (s *ServerSettings) launchHypershiftKASApp(appLabel string, tarBall string)
 							Image: kasImage,
 							Ports: []corev1.ContainerPort{
 								{
-									Name:          "management-cluster",
+									Name:          "mgmt-api",
 									Protocol:      corev1.ProtocolTCP,
 									ContainerPort: 8080,
 								},
 								{
-									Name:          "hosted-cluster",
+									Name:          "hosted-api",
 									Protocol:      corev1.ProtocolTCP,
 									ContainerPort: 8081,
 								},
@@ -417,6 +415,7 @@ func (s *ServerSettings) launchHypershiftKASApp(appLabel string, tarBall string)
 								"/must-gather/",
 								"--kubeconfig",
 								"/must-gather/kubeconfig",
+								"--fixed-port-assignment",
 							},
 							ReadinessProbe: &corev1.Probe{
 								TimeoutSeconds:   1,
