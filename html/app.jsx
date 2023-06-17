@@ -89,7 +89,7 @@ class Message extends React.Component {
         )
         break;
       case 'choose':
-        const items = JSON.parse(props.message);
+        const items = JSON.parse(this.props.message);
         const [selectedItem, setSelectedItem] = React.useState(items[0]);
 
         return (
