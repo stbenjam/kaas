@@ -88,6 +88,27 @@ class Message extends React.Component {
           </ReactBootstrap.Alert>
         )
         break;
+      case 'choose':
+        const items = JSON.parse(props.message);
+        const [selectedItem, setSelectedItem] = React.useState(items[0]);
+
+        return (
+            <ReactBootstrap.Form>
+              <ReactBootstrap.Form.Group controlId="exampleForm.SelectCustom">
+                <ReactBootstrap.Form.Label>Please choose a dump</ReactBootstrap.Form.Label>
+                <ReactBootstrap.Form.Control as="select" custom value={selectedItem} onChange={e => setSelectedItem(e.target.value)}>
+                  {items.map((item, index) => (
+                      <option key={index} value={item}>
+                        {item}
+                      </option>
+                  ))}
+                </ReactBootstrap.Form.Control>
+              </ReactBootstrap.Form.Group>
+              <ReactBootstrap.Button variant="primary" onClick={() => alert(selectedItem)}>
+                Submit
+              </ReactBootstrap.Button>
+            </ReactBootstrap.Form>
+        )
       case 'kubeconfig':
         var encodedKubeconfig = "data:text/yaml;charset=utf-8;base64,"+ btoa(this.props.message);
         return (

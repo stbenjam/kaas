@@ -183,7 +183,7 @@ func joinWithBaseURL(baseURL, path string) (string, error) {
 // All hypershift dumps are called "hypershift-dump.tar," we want to differentiate them
 // so let's append the last 2 paths in the URL to the name.  On hypershift, this gives us
 // the test case, e.g. artifacts-TestUpgradeControlPlane_PreTeardownClusterDump-hypershift-dump.tar
-func joinedFilename(s string) string {
+func contextualPath(s string) string {
 	u, err := url.Parse(s)
 	if err != nil {
 		panic(err)
@@ -193,13 +193,14 @@ func joinedFilename(s string) string {
 	elements := strings.Split(p, "/")
 	n := len(elements)
 
+	result := ""
 	if n > 2 {
-		return elements[n-3] + "-" + elements[n-2] + "-" + elements[n-1]
+		result = elements[n-3] + "-" + elements[n-2] + "-" + elements[n-1]
 	} else if n > 1 {
-		return elements[n-2] + "-" + elements[n-1]
+		result = elements[n-2] + "-" + elements[n-1]
 	} else if n > 0 {
-		return elements[n-1]
+		result = elements[n-1]
 	}
 
-	return ""
+	return strings.TrimSuffix(result, ".tar")
 }

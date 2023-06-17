@@ -62,7 +62,7 @@ func TryLogin(kubeconfigPath string) (*k8s.Clientset, *routeClient.RouteV1Client
 
 }
 
-func (s *ServerSettings) launchKASApp(appLabel string, mustGatherTar string) (string, string, error) {
+func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, string, error) {
 	replicas := int32(1)
 	sharePIDNamespace := true
 	ctx := context.TODO()
@@ -186,15 +186,15 @@ func (s *ServerSettings) launchKASApp(appLabel string, mustGatherTar string) (st
 								"/bin/bash",
 								"-c",
 								`set -uxo pipefail && \
-								 umask 0000 && \
-								 curl -sL ${MUSTGATHERTAR} | tar xvz -m --no-overwrite-dir --checkpoint=.100 && \
-								 mv */* .`,
+                                 umask 0000 && \
+                                 curl -sL ${DUMPTAR} | tar xvz -m --no-overwrite-dir --checkpoint=.100 && \
+                                 mv */* .`,
 							},
 							WorkingDir: "/must-gather/",
 							Env: []corev1.EnvVar{
 								{
-									Name:  "MUSTGATHERTAR",
-									Value: mustGatherTar,
+									Name:  "DUMPTAR",
+									Value: tarBall,
 								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
@@ -219,6 +219,8 @@ func (s *ServerSettings) launchKASApp(appLabel string, mustGatherTar string) (st
 							Args: []string{
 								"--base-dir",
 								"/must-gather/",
+								"--kubeconfig",
+								"/must-gather/kubeconfig",
 							},
 							ReadinessProbe: &corev1.Probe{
 								TimeoutSeconds:   1,
