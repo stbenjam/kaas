@@ -158,7 +158,7 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 		// Hypershift dumps contain two sets of resources, one from the management cluster in the root,
 		// and the other from the hosted cluster in hostedcluster-XXXXXX. static-kas doesn't understand this,
 		// so we merge them together.
-		cmdStr = "rsync -av --remove-source-files hostedcluster-*/ . && rm -rf hostedcluster-*"
+		cmdStr = "rsync -avvv --remove-source-files hostedcluster-*/ . && rm -rf hostedcluster-*"
 	} else {
 		cmdStr = "mv */* ."
 	}
