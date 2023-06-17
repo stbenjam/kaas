@@ -17,8 +17,8 @@ spec:
   runPolicy: Serial
   source:
     git:
-      ref: hypershift
-      uri: https://github.com/stbenjam/kaas
+      ref: main
+      uri: https://github.com/vrutkovs/kaas
     type: Git
   strategy:
     type: Docker
