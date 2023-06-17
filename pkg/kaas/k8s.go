@@ -195,8 +195,7 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 							Command: []string{
 								"/bin/bash",
 								"-c",
-								`set -uxo pipefail && \
-                                 umask 0000 && \
+								`umask 0000 && \
                                  curl -sL ${DUMPTAR} | tar xvz -m --no-overwrite-dir --checkpoint=.100 && ` + cmdStr,
 							},
 							WorkingDir: "/must-gather/",
