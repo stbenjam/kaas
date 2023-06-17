@@ -21,26 +21,6 @@ var wsupgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-const hypershiftKubeConfigTemplate = `apiVersion: v1
-clusters:
-- cluster:
-    server: %s
-  name: management-cluster
-- cluster:
-    server: %s
-  name: hosted-cluster
-contexts:
-- context:
-    cluster: management-cluster
-    namespace: default
-  name: management-cluster
-- context:
-    cluster: hosted-cluster
-    namespace: default
-  name: hosted-cluster
-current-context: hosted-cluster
-kind: Config`
-
 const kubeConfigTemplate = `apiVersion: v1
 clusters:
 - cluster:

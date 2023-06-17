@@ -26,7 +26,7 @@ const (
 	deploymentRolloutTime = 5 * time.Minute
 	deploymentLifetime    = 8 * time.Hour
 	kasImage              = "kaas:static-kas"
-	ciFetcherImage        = "registry.access.redhat.com/ubi8/ubi:8.5"
+	ciFetcherImage        = "registry.access.redhat.com/ubi9/ubi:latest"
 )
 
 func buildConfig(kubeconfig string) (*rest.Config, error) {
@@ -155,7 +155,7 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 
 	cmdStr := ""
 	if strings.Contains(tarBall, "hypershift-dump.tar") {
-		cmdStr = "rsync -av --remove-source-files hostedcluster-*/ . && rm -rf hostedcluster-*"
+		cmdStr = "dnf install -y rsync && rsync -av --remove-source-files hostedcluster-*/ . && rm -rf hostedcluster-*"
 	} else {
 		cmdStr = "mv */* ."
 	}
@@ -298,178 +298,6 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 	}
 
 	return externalAPIURL, consoleURL, nil
-}
-
-func (s *ServerSettings) launchHypershiftKASApp(appLabel string, tarBall string) (string, string, error) {
-	replicas := int32(1)
-	sharePIDNamespace := true
-	ctx := context.TODO()
-	createOpts := metav1.CreateOptions{}
-
-	// Create service and route and fetch the host
-	service := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: appLabel,
-			Labels: map[string]string{
-				"app": appLabel,
-			},
-		},
-		Spec: corev1.ServiceSpec{
-			Ports: []corev1.ServicePort{
-				{
-					Port:     8080,
-					Protocol: corev1.ProtocolTCP,
-					Name:     "mgmt-api",
-				},
-				{
-					Port:     8081,
-					Protocol: corev1.ProtocolTCP,
-					Name:     "hosted-api",
-				},
-			},
-			Selector: map[string]string{
-				"app": appLabel,
-			},
-		},
-	}
-	_, err := s.K8sClient.CoreV1().Services(s.Namespace).Create(ctx, service, createOpts)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to create new service: %s", err.Error())
-	}
-
-	managementClusterRoute, err := s.createRoute(ctx, appLabel, "mgmt-api", 8080)
-	if err != nil {
-		return "", "", fmt.Errorf("could not create management route")
-	}
-
-	hostedClusterRoute, err := s.createRoute(ctx, appLabel, "hosted-api", 8081)
-	if err != nil {
-		return "", "", fmt.Errorf("could not create hosted cluster route")
-	}
-
-	managementClusterURL := fmt.Sprintf("https://%s", managementClusterRoute.Spec.Host)
-	hostedClusterURL := fmt.Sprintf("https://%s", hostedClusterRoute.Spec.Host)
-
-	// Declare and create new deployment
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-kas", appLabel),
-			Labels: map[string]string{
-				"app": appLabel,
-			},
-			Annotations: map[string]string{
-				"alpha.image.policy.openshift.io/resolve-names": "*",
-			},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": appLabel,
-				},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": appLabel,
-					},
-				},
-				Spec: corev1.PodSpec{
-					InitContainers: []corev1.Container{
-						{
-							Name:  "ci-fetcher",
-							Image: ciFetcherImage,
-							Command: []string{
-								"/bin/bash",
-								"-c",
-								`set -uxo pipefail && \
-                                 umask 0000 && \
-                                 curl -sL ${DUMPTAR} | tar xvz -m --no-overwrite-dir --checkpoint=.100`,
-							},
-							WorkingDir: "/must-gather/",
-							Env: []corev1.EnvVar{
-								{
-									Name:  "DUMPTAR",
-									Value: tarBall,
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "must-gather-volume",
-									MountPath: "/must-gather/",
-								},
-							},
-						},
-					},
-					Containers: []corev1.Container{
-						{
-							Name:  "kas",
-							Image: kasImage,
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          "mgmt-api",
-									Protocol:      corev1.ProtocolTCP,
-									ContainerPort: 8080,
-								},
-								{
-									Name:          "hosted-api",
-									Protocol:      corev1.ProtocolTCP,
-									ContainerPort: 8081,
-								},
-							},
-							Args: []string{
-								"--base-dir",
-								"/must-gather/",
-								"--kubeconfig",
-								"/must-gather/kubeconfig",
-								"--fixed-port-assignment",
-							},
-							ReadinessProbe: &corev1.Probe{
-								TimeoutSeconds:   1,
-								PeriodSeconds:    10,
-								SuccessThreshold: 1,
-								FailureThreshold: 3,
-								Handler: corev1.Handler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path:   "/version",
-										Port:   intstr.FromInt(8080),
-										Scheme: "HTTP",
-									},
-								},
-							},
-							Resources: corev1.ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"cpu":    resource.MustParse("100m"),
-									"memory": resource.MustParse("500Mi"),
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "must-gather-volume",
-									MountPath: "/must-gather/",
-								},
-							},
-						},
-					},
-					ShareProcessNamespace: &sharePIDNamespace,
-					Volumes: []corev1.Volume{
-						{
-							Name: "must-gather-volume",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	_, err = s.K8sClient.AppsV1().Deployments(s.Namespace).Create(ctx, deployment, createOpts)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to create new deployment: %s", err.Error())
-	}
-
-	return managementClusterURL, hostedClusterURL, nil
 }
 
 func (s *ServerSettings) waitForDeploymentReady(appLabel string) error {
@@ -615,30 +443,4 @@ func (s *ServerSettings) WatchResourceQuota() {
 			s.sendResourceQuotaUpdate()
 		}
 	}
-}
-
-func (s *ServerSettings) createRoute(ctx context.Context, appLabel, name string, port int) (*routeApi.Route, error) {
-	kasAPIRoute := &routeApi.Route{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s-%s", appLabel, name),
-			Labels: map[string]string{
-				"app": appLabel,
-			},
-		},
-		Spec: routeApi.RouteSpec{
-			To: routeApi.RouteTargetReference{
-				Kind: "Service",
-				Name: appLabel,
-			},
-			Port: &routeApi.RoutePort{
-				TargetPort: intstr.FromInt(port),
-			},
-			TLS: &routeApi.TLSConfig{
-				Termination:                   routeApi.TLSTerminationEdge,
-				InsecureEdgeTerminationPolicy: routeApi.InsecureEdgeTerminationPolicyRedirect,
-			},
-		},
-	}
-
-	return s.RouteClient.Routes(s.Namespace).Create(ctx, kasAPIRoute, metav1.CreateOptions{})
 }
