@@ -155,6 +155,9 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 
 	cmdStr := ""
 	if strings.Contains(tarBall, "hypershift-dump.tar") {
+		// Hypershift dumps contain two sets of resources, one from the management cluster in the root,
+		// and the other from the hosted cluster in hostedcluster-XXXXXX. static-kas doesn't understand this,
+		// so we merge them together.
 		cmdStr = "dnf install -y rsync && rsync -av --remove-source-files hostedcluster-*/ . && rm -rf hostedcluster-*"
 	} else {
 		cmdStr = "mv */* ."
