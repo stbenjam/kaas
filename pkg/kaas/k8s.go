@@ -26,7 +26,7 @@ const (
 	deploymentRolloutTime = 5 * time.Minute
 	deploymentLifetime    = 8 * time.Hour
 	kasImage              = "kaas:static-kas"
-	ciFetcherImage        = "registry.access.redhat.com/ubi8/ubi:latest"
+	ciFetcherImage        = "registry.access.redhat.com/ubi9/ubi:latest"
 )
 
 func buildConfig(kubeconfig string) (*rest.Config, error) {
@@ -196,7 +196,6 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 								"/bin/bash",
 								"-c",
 								`set -uxo pipefail && \
-                                 umask 0000 && \
                                  curl -sL ${DUMPTAR} | tar xvz -m --no-overwrite-dir --checkpoint=.100 && ` + cmdStr,
 							},
 							WorkingDir: "/must-gather/",
