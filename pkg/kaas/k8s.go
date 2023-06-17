@@ -26,7 +26,7 @@ const (
 	deploymentRolloutTime = 5 * time.Minute
 	deploymentLifetime    = 8 * time.Hour
 	kasImage              = "kaas:static-kas"
-	ciFetcherImage        = "registry.access.redhat.com/ubi8/ubi:8.5"
+	ciFetcherImage        = "kaas:latest"
 )
 
 func buildConfig(kubeconfig string) (*rest.Config, error) {
@@ -158,7 +158,7 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 		// Hypershift dumps contain two sets of resources, one from the management cluster in the root,
 		// and the other from the hosted cluster in hostedcluster-XXXXXX. static-kas doesn't understand this,
 		// so we merge them together.
-		cmdStr = "dnf install -y rsync && rsync -av --remove-source-files hostedcluster-*/ . && rm -rf hostedcluster-*"
+		cmdStr = "rsync -av --remove-source-files hostedcluster-*/ . && rm -rf hostedcluster-*"
 	} else {
 		cmdStr = "mv */* ."
 	}
@@ -197,7 +197,7 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 								"-c",
 								`set -uxo pipefail && \
                                  umask 0000 && \
-                                 curl -sL ${DUMPTAR} | tar xvz -m --no-same-permissions --no-overwrite-dir --checkpoint=.100 && ` + cmdStr,
+                                 curl -sL ${DUMPTAR} | tar xvz -m --no-overwrite-dir --checkpoint=.100 && ` + cmdStr,
 							},
 							WorkingDir: "/must-gather/",
 							Env: []corev1.EnvVar{
