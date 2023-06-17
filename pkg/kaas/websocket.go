@@ -131,7 +131,7 @@ func (s *ServerSettings) newKAS(conn *websocket.Conn, rawURL string) {
 	sendWSMessage(conn, "app-label", appLabel)
 
 	// Fetch must-gather.tar path if prow URL specified
-	prowInfo, err := getMustGatherTar(conn, rawURL)
+	prowInfo, err := getTarPaths(conn, rawURL)
 	if err != nil {
 		sendWSMessage(conn, "failure", fmt.Sprintf("Failed to find must-gather archive: %s", err.Error()))
 		return
