@@ -51,7 +51,7 @@ func getTarPaths(conn *websocket.Conn, url string) (*ProwInfo, error) {
 	// Otherwise we got a prow or gcsweb url, and we need to find our potential artifacts
 	sendWSMessage(conn, "status", fmt.Sprintf("Finding artifacts for %s", url))
 	// Get the URL for artifacts directory
-	artifactURL, err := findArtifactURL("https://prow.ci.openshift.org/view/gs/origin-ci-test/logs/periodic-ci-openshift-hypershift-release-4.14-periodics-e2e-aws-ovn/1669918745679630336")
+	artifactURL, err := findArtifactURL(url)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get artifact url: %+v", err)
 
