@@ -2,6 +2,7 @@ package kaas
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gorilla/websocket"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -94,7 +94,7 @@ func newDocument(url string) (*goquery.Document, error) {
 
 // findArtifactURL finds the "artifacts" directory path
 func findArtifactURL(bucketURL string) (string, error) {
-	logrus.Infof("finding artifacts url %s", bucketURL)
+	log.Printf("finding artifacts url %s", bucketURL)
 	doc, err := newDocument(bucketURL)
 	if err != nil {
 		return "", err
@@ -114,7 +114,7 @@ func findArtifactURL(bucketURL string) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			logrus.Infof("have prow url, fetching gcsweb link")
+			log.Printf("have prow url, fetching gcsweb link")
 			return findArtifactURL(gcsURL)
 		}
 	}
@@ -129,7 +129,7 @@ func findArtifactURL(bucketURL string) (string, error) {
 
 // find matching paths
 func findURLsRecursively(url string, paths []string) ([]string, error) {
-	logrus.Infof("processing %s", url)
+	log.Printf("processing %s", url)
 	doc, err := newDocument(url)
 	if err != nil {
 		return nil, err
@@ -142,7 +142,7 @@ func findURLsRecursively(url string, paths []string) ([]string, error) {
 				pathURL, _ := s.Attr("href")
 				pathURL, err = joinWithBaseURL(url, pathURL)
 				if err != nil {
-					logrus.WithError(err).Warningf("couldn't build url")
+					log.Printf("couldn't build url: %+v", err)
 					continue
 				}
 
@@ -156,7 +156,8 @@ func findURLsRecursively(url string, paths []string) ([]string, error) {
 				subURL, _ = joinWithBaseURL(url, subURL)
 				results, err := findURLsRecursively(subURL, paths)
 				if err != nil {
-					logrus.WithError(err).Warningf("encountered error at %s", subURL)
+					log.Printf("encountered error at %s: %+v", subURL, err)
+					return
 				}
 
 				urls = append(urls, results...)

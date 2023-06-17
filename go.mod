@@ -51,7 +51,6 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	k8s.io/klog/v2 v2.40.1 // indirect
