@@ -153,6 +153,13 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 	}
 	consoleURL := fmt.Sprintf("https://%s", consoleRoute.Spec.Host)
 
+	cmdStr := ""
+	if strings.Contains(tarBall, "hypershift-dump.tar") {
+		cmdStr = "rsync -av --remove-source-files hostedcluster-*/ . && rm -rf hostedcluster-*"
+	} else {
+		cmdStr = "mv */* ."
+	}
+
 	// Declare and create new deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -187,8 +194,7 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 								"-c",
 								`set -uxo pipefail && \
                                  umask 0000 && \
-                                 curl -sL ${DUMPTAR} | tar xvz -m --no-overwrite-dir --checkpoint=.100 && \
-                                 mv */* .`,
+                                 curl -sL ${DUMPTAR} | tar xvz -m --no-overwrite-dir --checkpoint=.100 && ` + cmdStr,
 							},
 							WorkingDir: "/must-gather/",
 							Env: []corev1.EnvVar{

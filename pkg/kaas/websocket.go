@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -177,45 +176,25 @@ func (s *ServerSettings) newKAS(conn *websocket.Conn, rawURL string) {
 	// Create a new app in the namespace and return route
 	sendWSMessage(conn, "status", "Deploying a new KAS instance")
 
-	if strings.Contains(dumpURL, "hypershift-dump.tar") {
-		var managementCluster, hostedCluster string
-		if managementCluster, hostedCluster, err = s.launchHypershiftKASApp(appLabel, dumpURL); err != nil {
-			sendWSMessage(conn, "failure", fmt.Sprintf("Failed to run a new app: %s", err.Error()))
-			return
-		}
-		kubeconfig := fmt.Sprintf(hypershiftKubeConfigTemplate, managementCluster, hostedCluster)
-		sendWSMessage(conn, "kubeconfig", kubeconfig)
-		sendWSMessage(conn, "progress", "Waiting for pods to become ready")
-		if err := s.waitForDeploymentReady(appLabel); err != nil {
-			sendWSMessage(conn, "failure", err.Error())
-			return
-		}
-		data := map[string]string{
-			"hash": appLabel,
-			"url":  managementCluster,
-		}
-		sendWSMessageWithData(conn, "done", "Pod is ready", data)
-	} else {
-		var kasRoute string
-		var consoleRoute string
-		if kasRoute, consoleRoute, err = s.launchKASApp(appLabel, dumpURL); err != nil {
-			sendWSMessage(conn, "failure", fmt.Sprintf("Failed to run a new app: %s", err.Error()))
-			return
-		}
-		kubeconfig := fmt.Sprintf(kubeConfigTemplate, kasRoute)
-		sendWSMessage(conn, "kubeconfig", kubeconfig)
-
-		sendWSMessage(conn, "progress", "Waiting for pods to become ready")
-		if err := s.waitForDeploymentReady(appLabel); err != nil {
-			sendWSMessage(conn, "failure", err.Error())
-			return
-		}
-		sendWSMessage(conn, "link", consoleRoute)
-
-		data := map[string]string{
-			"hash": appLabel,
-			"url":  kasRoute,
-		}
-		sendWSMessageWithData(conn, "done", "Pod is ready", data)
+	var kasRoute string
+	var consoleRoute string
+	if kasRoute, consoleRoute, err = s.launchKASApp(appLabel, dumpURL); err != nil {
+		sendWSMessage(conn, "failure", fmt.Sprintf("Failed to run a new app: %s", err.Error()))
+		return
 	}
+	kubeconfig := fmt.Sprintf(kubeConfigTemplate, kasRoute)
+	sendWSMessage(conn, "kubeconfig", kubeconfig)
+
+	sendWSMessage(conn, "progress", "Waiting for pods to become ready")
+	if err := s.waitForDeploymentReady(appLabel); err != nil {
+		sendWSMessage(conn, "failure", err.Error())
+		return
+	}
+	sendWSMessage(conn, "link", consoleRoute)
+
+	data := map[string]string{
+		"hash": appLabel,
+		"url":  kasRoute,
+	}
+	sendWSMessageWithData(conn, "done", "Pod is ready", data)
 }
