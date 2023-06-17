@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -22,6 +23,26 @@ var wsupgrader = websocket.Upgrader{
 }
 
 const kubeConfigTemplate = `apiVersion: v1
+clusters:
+- cluster:
+    server: %s
+  name: management-cluster
+- cluster:
+    server: %s
+  name: hosted-cluster
+contexts:
+- context:
+    cluster: management-cluster
+    namespace: default
+  name: management-cluster
+- context:
+    cluster: hosted-cluster
+    namespace: default
+  name: hosted-cluster
+current-context: hosted-cluster
+kind: Config`
+
+const hypershiftKubeConfigTemplate = `apiVersion: v1
 clusters:
 - cluster:
     server: %s
@@ -137,9 +158,6 @@ func (s *ServerSettings) newKAS(conn *websocket.Conn, rawURL string) {
 		return
 	}
 
-	// Create a new app in the namespace and return route
-	sendWSMessage(conn, "status", "Deploying a new KAS instance")
-
 	if len(prowInfo.DumpURL) == 0 {
 		sendWSMessage(conn, "failure", "No dump tarballs found")
 		return
@@ -154,25 +172,50 @@ func (s *ServerSettings) newKAS(conn *websocket.Conn, rawURL string) {
 		return
 	}
 
-	var kasRoute string
-	var consoleRoute string
-	if kasRoute, consoleRoute, err = s.launchKASApp(appLabel, prowInfo.DumpURL[0]); err != nil {
-		sendWSMessage(conn, "failure", fmt.Sprintf("Failed to run a new app: %s", err.Error()))
-		return
-	}
-	kubeconfig := fmt.Sprintf(kubeConfigTemplate, kasRoute)
-	sendWSMessage(conn, "kubeconfig", kubeconfig)
+	dumpURL := prowInfo.DumpURL[0]
 
-	sendWSMessage(conn, "progress", "Waiting for pods to become ready")
-	if err := s.waitForDeploymentReady(appLabel); err != nil {
-		sendWSMessage(conn, "failure", err.Error())
-		return
-	}
-	sendWSMessage(conn, "link", consoleRoute)
+	// Create a new app in the namespace and return route
+	sendWSMessage(conn, "status", "Deploying a new KAS instance")
 
-	data := map[string]string{
-		"hash": appLabel,
-		"url":  kasRoute,
+	if strings.Contains(dumpURL, "hypershift") {
+		var managementCluster, hostedCluster string
+		if managementCluster, hostedCluster, err = s.launchHypershiftKASApp(appLabel, dumpURL); err != nil {
+			sendWSMessage(conn, "failure", fmt.Sprintf("Failed to run a new app: %s", err.Error()))
+			return
+		}
+		kubeconfig := fmt.Sprintf(hypershiftKubeConfigTemplate, managementCluster, hostedCluster)
+		sendWSMessage(conn, "kubeconfig", kubeconfig)
+		sendWSMessage(conn, "progress", "Waiting for pods to become ready")
+		if err := s.waitForDeploymentReady(appLabel); err != nil {
+			sendWSMessage(conn, "failure", err.Error())
+			return
+		}
+		data := map[string]string{
+			"hash": appLabel,
+			"url":  managementCluster,
+		}
+		sendWSMessageWithData(conn, "done", "Pod is ready", data)
+	} else {
+		var kasRoute string
+		var consoleRoute string
+		if kasRoute, consoleRoute, err = s.launchKASApp(appLabel, dumpURL); err != nil {
+			sendWSMessage(conn, "failure", fmt.Sprintf("Failed to run a new app: %s", err.Error()))
+			return
+		}
+		kubeconfig := fmt.Sprintf(kubeConfigTemplate, kasRoute)
+		sendWSMessage(conn, "kubeconfig", kubeconfig)
+
+		sendWSMessage(conn, "progress", "Waiting for pods to become ready")
+		if err := s.waitForDeploymentReady(appLabel); err != nil {
+			sendWSMessage(conn, "failure", err.Error())
+			return
+		}
+		sendWSMessage(conn, "link", consoleRoute)
+
+		data := map[string]string{
+			"hash": appLabel,
+			"url":  kasRoute,
+		}
+		sendWSMessageWithData(conn, "done", "Pod is ready", data)
 	}
-	sendWSMessageWithData(conn, "done", "Pod is ready", data)
 }
