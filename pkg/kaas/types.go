@@ -30,6 +30,5 @@ type ProwJSON struct {
 
 // ProwInfo stores all links and data collected via scanning for must gather
 type ProwInfo struct {
-	MustGatherURL string
-	DumpURL       []string
+	ClusterDumpURLs []string
 }

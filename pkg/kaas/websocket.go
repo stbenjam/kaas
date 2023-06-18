@@ -137,13 +137,13 @@ func (s *ServerSettings) newKAS(conn *websocket.Conn, rawURL string) {
 		return
 	}
 
-	if len(prowInfo.DumpURL) == 0 {
+	if len(prowInfo.ClusterDumpURLs) == 0 {
 		sendWSMessage(conn, "failure", "No dump tarballs found")
 		return
 	}
 
-	if len(prowInfo.DumpURL) > 1 {
-		data, err := json.Marshal(prowInfo.DumpURL)
+	if len(prowInfo.ClusterDumpURLs) > 1 {
+		data, err := json.Marshal(prowInfo.ClusterDumpURLs)
 		if err != nil {
 			sendWSMessage(conn, "failure", fmt.Sprintf("Failed to marshal dump configs: +%v", err))
 		}
@@ -151,7 +151,7 @@ func (s *ServerSettings) newKAS(conn *websocket.Conn, rawURL string) {
 		return
 	}
 
-	dumpURL := prowInfo.DumpURL[0]
+	dumpURL := prowInfo.ClusterDumpURLs[0]
 
 	// Create a new app in the namespace and return route
 	sendWSMessage(conn, "status", "Deploying a new KAS instance")

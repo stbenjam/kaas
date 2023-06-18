@@ -42,7 +42,7 @@ func getTarPaths(conn *websocket.Conn, url string) (*ProwInfo, error) {
 	if strings.HasSuffix(url, ".tar") {
 		sendWSMessage(conn, "status", fmt.Sprintf("Found tardump at %s", url))
 		return &ProwInfo{
-			DumpURL: []string{
+			ClusterDumpURLs: []string{
 				url,
 			},
 		}, nil
@@ -67,14 +67,8 @@ func getTarPaths(conn *websocket.Conn, url string) (*ProwInfo, error) {
 		sendWSMessage(conn, "status", fmt.Sprintf("Found dump archive at %s", u))
 	}
 
-	mgp := ""
-	if len(dumpURLs) > 0 {
-		mgp = dumpURLs[0]
-	}
-
 	return &ProwInfo{
-		MustGatherURL: mgp,
-		DumpURL:       dumpURLs,
+		ClusterDumpURLs: dumpURLs,
 	}, nil
 }
 
@@ -190,29 +184,4 @@ func joinWithBaseURL(baseURL, path string) (string, error) {
 	}
 
 	return parsedBaseURL.ResolveReference(parsedRelativeURL).String(), nil
-}
-
-// All hypershift dumps are called "hypershift-dump.tar," we want to differentiate them
-// so let's append the last 2 paths in the URL to the name.  On hypershift, this gives us
-// the test case, e.g. artifacts-TestUpgradeControlPlane_PreTeardownClusterDump-hypershift-dump.tar
-func contextualPath(s string) string {
-	u, err := url.Parse(s)
-	if err != nil {
-		panic(err)
-	}
-
-	p := u.Path
-	elements := strings.Split(p, "/")
-	n := len(elements)
-
-	result := ""
-	if n > 2 {
-		result = elements[n-3] + "-" + elements[n-2] + "-" + elements[n-1]
-	} else if n > 1 {
-		result = elements[n-2] + "-" + elements[n-1]
-	} else if n > 0 {
-		result = elements[n-1]
-	}
-
-	return strings.TrimSuffix(result, ".tar")
 }
