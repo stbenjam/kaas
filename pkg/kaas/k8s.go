@@ -158,7 +158,9 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 		// Hypershift dumps contain two sets of resources, one from the management cluster in the root,
 		// and the other from the hosted cluster in hostedcluster-XXXXXX. static-kas doesn't understand this,
 		// so we merge them together.
-		cmdStr = "rsync -av --remove-source-files hostedcluster-*/ . && rsync -avn --remove-source-files hostedcluster-*/ . && rm -rf hostedcluster-*"
+		cmdStr = `mv hostedcluster-*/cluster-scoped-resources/* cluster-scoped-resources/ && \
+                  mv hostedcluster-*/namespaces/* namespaces/ && \
+                  rm -rf hostedcluster-*`
 	} else {
 		cmdStr = "mv */* ."
 	}
@@ -195,8 +197,10 @@ func (s *ServerSettings) launchKASApp(appLabel string, tarBall string) (string, 
 							Command: []string{
 								"/bin/bash",
 								"-c",
-								`umask 0000 && \
-                                 curl -sL ${DUMPTAR} | tar xvz -m --no-overwrite-dir --checkpoint=.100 && ` + cmdStr,
+								`set -uxo pipefail && \
+								umask 0000 && \
+								curl -sL ${DUMPTAR} | tar xvz -m --no-overwrite-dir --checkpoint=.100 && ` +
+									cmdStr,
 							},
 							WorkingDir: "/must-gather/",
 							Env: []corev1.EnvVar{

@@ -7,6 +7,5 @@ RUN go mod vendor && go build -o ./kaas ./cmd/kaas
 FROM registry.access.redhat.com/ubi8/ubi:8.5
 COPY --from=builder /go/src/github.com/vrutkovs/kaas/kaas /bin/kaas
 COPY --from=builder /go/src/github.com/vrutkovs/kaas/html /srv/html
-RUN dnf install -y rsync
 WORKDIR /srv
 ENTRYPOINT ["/bin/kaas"]
