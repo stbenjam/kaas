@@ -26,7 +26,7 @@ const (
 	deploymentRolloutTime = 5 * time.Minute
 	deploymentLifetime    = 8 * time.Hour
 	kasImage              = "kaas:static-kas"
-	ciFetcherImage        = "kaas:latest"
+	ciFetcherImage        = "registry.access.redhat.com/ubi8/ubi:8.5"
 )
 
 func buildConfig(kubeconfig string) (*rest.Config, error) {
