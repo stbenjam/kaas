@@ -412,6 +412,9 @@ class SearchForm extends React.Component {
     if (!this.state.searchInput) {
       let params = (new URL(window.location)).searchParams;
       let searchInput = params.get('search');
+      if ((!searchInput || searchInput === '') && document.referrer.includes("prow")) {
+        searchInput = document.referrer;
+      }
       if (searchInput && searchInput != this.state.querySearch) {
         this.state.querySearch = searchInput;
         this.handleSearchInput(searchInput);
